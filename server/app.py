@@ -9,19 +9,51 @@ from models import db, Plant
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///plants.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = True
+app.json.compact = False
 
 migrate = Migrate(app, db)
 db.init_app(app)
-
 api = Api(app)
 
 class Plants(Resource):
-    pass
+    def get(self):
+        resp_data = [plant.to_dict() for plant in Plant.query.all()]
+
+        response = make_response(resp_data, 200)
+        return response
+    
+    def post(self):
+        data = request.get_json()
+
+        new_plant = Plant(
+            name=data['name'],
+            image=data['image'],
+            price=int(data['price']),
+        )
+        # new_plant = Plant(
+        #     name=request.form['name'],
+        #     image=request.form['image'],
+        #     price=int(request.form['price']),
+        # ) can also just request from form directly
+
+        db.session.add(new_plant)
+        db.session.commit()
+
+        new_plant_dict = new_plant.to_dict()
+        response = make_response(new_plant_dict, 201)
+        return response
+    
+api.add_resource(Plants, '/plants')
 
 class PlantByID(Resource):
-    pass
-        
+    def get(self, id):
+        resp_data = Plant.query.filter(Plant.id==id).first()
+
+        resp_data_dict = resp_data.to_dict()
+        response = make_response(resp_data_dict, 200)
+        return response
+    
+api.add_resource(PlantByID, '/plants/<int:id>')        
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
