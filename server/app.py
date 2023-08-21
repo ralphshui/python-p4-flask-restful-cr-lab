@@ -16,14 +16,17 @@ db.init_app(app)
 
 api = Api(app)
 
-
 class Plants(Resource):
-
     def get(self):
-        plants = [plant.to_dict() for plant in Plant.query.all()]
-        return make_response(jsonify(plants), 200)
+        plants = Plant.query.all()
 
+        plants_dict = [plant.to_dict() for plant in plants]
+
+        response = make_response(plants_dict, 200)
+        return response
+    
     def post(self):
+
         data = request.get_json()
 
         new_plant = Plant(
@@ -35,43 +38,22 @@ class Plants(Resource):
         db.session.add(new_plant)
         db.session.commit()
 
-        return make_response(new_plant.to_dict(), 201)
+        new_plant_dict = new_plant.to_dict()
 
-
+        response = make_response(new_plant_dict, 201)
+        return response
+    
 api.add_resource(Plants, '/plants')
 
-
 class PlantByID(Resource):
-
     def get(self, id):
-        plant = Plant.query.filter_by(id=id).first().to_dict()
-        return make_response(jsonify(plant), 200)
-
-    def patch(self,id):
-        plant = Plant.query.filter_by(id=id).first()
-
-        for attr in request.form:
-            setattr(plant, attr, request.form[attr])
-        
-        db.session.add(plant)
-        db.session.commit()
+        plant = Plant.query.filter(Plant.id==id).first()
 
         plant_dict = plant.to_dict()
-        
+
         response = make_response(plant_dict, 200)
         return response
     
-    def delete(self,id):
-        plant = Plant.query.filter_by(id=id).first()
-
-        db.session.delete(plant)
-        db.session.commit()
-
-        resp_body = {"message": "no content"}
-
-        response = make_response(resp_body, 200)
-        return response
-
 api.add_resource(PlantByID, '/plants/<int:id>')
 
 if __name__ == '__main__':
