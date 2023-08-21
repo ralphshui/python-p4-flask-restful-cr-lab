@@ -13,47 +13,66 @@ app.json.compact = False
 
 migrate = Migrate(app, db)
 db.init_app(app)
+
 api = Api(app)
 
-class Plants(Resource):
-    def get(self):
-        resp_data = [plant.to_dict() for plant in Plant.query.all()]
 
-        response = make_response(resp_data, 200)
-        return response
-    
+class Plants(Resource):
+
+    def get(self):
+        plants = [plant.to_dict() for plant in Plant.query.all()]
+        return make_response(jsonify(plants), 200)
+
     def post(self):
         data = request.get_json()
 
         new_plant = Plant(
             name=data['name'],
             image=data['image'],
-            price=int(data['price']),
+            price=data['price'],
         )
-        # new_plant = Plant(
-        #     name=request.form['name'],
-        #     image=request.form['image'],
-        #     price=int(request.form['price']),
-        # ) can also just request from form directly
 
         db.session.add(new_plant)
         db.session.commit()
 
-        new_plant_dict = new_plant.to_dict()
-        response = make_response(new_plant_dict, 201)
-        return response
-    
+        return make_response(new_plant.to_dict(), 201)
+
+
 api.add_resource(Plants, '/plants')
 
-class PlantByID(Resource):
-    def get(self, id):
-        resp_data = Plant.query.filter(Plant.id==id).first()
 
-        resp_data_dict = resp_data.to_dict()
-        response = make_response(resp_data_dict, 200)
+class PlantByID(Resource):
+
+    def get(self, id):
+        plant = Plant.query.filter_by(id=id).first().to_dict()
+        return make_response(jsonify(plant), 200)
+
+    def patch(self,id):
+        plant = Plant.query.filter_by(id=id).first()
+
+        for attr in request.form:
+            setattr(plant, attr, request.form[attr])
+        
+        db.session.add(plant)
+        db.session.commit()
+
+        plant_dict = plant.to_dict()
+        
+        response = make_response(plant_dict, 200)
         return response
     
-api.add_resource(PlantByID, '/plants/<int:id>')        
+    def delete(self,id):
+        plant = Plant.query.filter_by(id=id).first()
+
+        db.session.delete(plant)
+        db.session.commit()
+
+        resp_body = {"message": "no content"}
+
+        response = make_response(resp_body, 200)
+        return response
+
+api.add_resource(PlantByID, '/plants/<int:id>')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
